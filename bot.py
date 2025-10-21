@@ -2,6 +2,8 @@ import discord
 from discord.ext import commands
 from config import config
 from utils.roles import get_guild_roles
+from threading import Thread
+from api import app, run_api
 
 #########################################
 # Create Bot Instance
@@ -30,6 +32,10 @@ bot = create_bot()
 #########################################
 @bot.event
 async def on_ready():
+    from api import bot_instance as set_bot_instance, bot_instance
+    import api
+    api.bot_instance = bot
+    
     print(f'Logged in as {bot.user.name} (ID: {bot.user.id})')
     print(f'Environment: {config.ENVIRONMENT}')
     print('=' * 50)
@@ -72,6 +78,12 @@ def main():
         print('Starting Discord Role Bot...')
         print(f'Environment: {config.ENVIRONMENT}')
         print(f'Target Guild ID: {config.guild_id}')
+        print('=' * 50)
+        
+        # Start the FastAPI server in a background thread
+        api_thread = Thread(target=run_api, daemon=True)
+        api_thread.start()
+        print('FastAPI server started on http://0.0.0.0:8001')
         print('=' * 50)
         
         # Start the bot

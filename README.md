@@ -6,6 +6,7 @@ A Discord bot designed to interact with Discord servers and manage role informat
 
 - **Multi-Environment Support**: Separate configurations for development and production servers
 - **Role Management**: Lists all non-managed roles (excluding bot roles and @everyone)
+- **REST API**: FastAPI endpoints to fetch roles programmatically
 
 ## Setup
 
@@ -78,17 +79,54 @@ The bot will:
 - **Development** (`ENVIRONMENT=development`): Uses `DEV_GUILD_ID`
 - **Production** (`ENVIRONMENT=production`): Uses `PROD_GUILD_ID`
 
+## API Endpoints
+
+The bot exposes a FastAPI server on port `8001` with the following endpoints:
+
+### Health Check
+```
+GET /health
+```
+Returns the bot's connection status.
+
+### Get Roles
+```
+GET /api/roles
+```
+Returns a list of all available roles from the configured guild.
+
+**Example response:**
+```json
+[
+  {"name": "Admin", "id": 123456789},
+  {"name": "Moderator", "id": 987654321},
+  {"name": "Member", "id": 555555555}
+]
+```
+
 ## Dependencies
 
 - `discord.py>=2.3.0` - Discord API wrapper
 - `python-dotenv>=1.0.0` - Environment variable management
 - `aiohttp>=3.8.0` - Async HTTP client (discord.py dependency)
+- `fastapi>=0.104.0` - REST API framework
+- `uvicorn>=0.24.0` - ASGI server for FastAPI
+
+## Security
+
+Sensitive information (Discord token, API keys, guild IDs) is managed through environment variables in a `.env` file. This file should **never** be committed to version control.
+
+When deploying or sharing the code:
+- Always use environment variables for secrets
+- Include a `.env.example` file showing required variables (without actual values)
+- Ensure `.gitignore` excludes `.env` files
 
 ## Future Enhancements
 
 This bot is designed to be extended with additional features such as:
-- Integration with external applications
-- RESTful API endpoints for role information
+- API authentication/authorization for endpoints
+- Webhook integration for role updates
+- Database persistence of role information
 
 ## Support
 
