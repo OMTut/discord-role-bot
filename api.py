@@ -3,6 +3,7 @@ FastAPI server for Discord Role Bot
 Provides REST endpoints to access bot data
 """
 import asyncio
+import hmac
 import os
 import uvicorn
 from fastapi import FastAPI, HTTPException, Header
@@ -32,7 +33,7 @@ bot_instance = None
 
 def _check_api_key(x_api_key: str):
     from config import config
-    if not config.BOT_API_KEY or x_api_key != config.BOT_API_KEY:
+    if not config.BOT_API_KEY or not hmac.compare_digest(x_api_key, config.BOT_API_KEY):
         raise HTTPException(status_code=401, detail="Invalid API key")
 
 
