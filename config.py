@@ -21,6 +21,10 @@ class Config:
     # Bot settings
     COMMAND_PREFIX = os.getenv('COMMAND_PREFIX', '!')
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
+
+    # Naja Admin integration
+    NAJA_ADMIN_URL = os.getenv('NAJA_ADMIN_URL', 'http://localhost:8000')
+    BOT_API_KEY = os.getenv('BOT_API_KEY')
     
     @property
     def guild_id(self):
@@ -42,6 +46,9 @@ class Config:
         if not self.guild_id:
             env_var = 'DEV_GUILD_ID' if self.is_development else 'PROD_GUILD_ID'
             raise ValueError(f"{env_var} is required for {self.ENVIRONMENT} environment")
+
+        if not self.BOT_API_KEY:
+            raise ValueError("BOT_API_KEY is required")
 
 # Global config instance
 config = Config()

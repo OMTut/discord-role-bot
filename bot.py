@@ -1,4 +1,5 @@
 import discord
+import httpx
 from discord.ext import commands
 from config import config
 from utils.roles import get_guild_roles
@@ -12,6 +13,7 @@ from api import app, run_api
 def create_bot() -> commands.Bot:
     intents = discord.Intents.default()
     intents.guilds = True
+    intents.members = True
     
     bot = commands.Bot(
         command_prefix=config.COMMAND_PREFIX,
@@ -68,6 +70,35 @@ async def on_ready():
     except Exception as e:
         print(f'Error fetching guild information: {e}')
         print('Check your bot permissions and guild configuration')
+
+
+@bot.event
+async def on_member_update(before: discord.Member, after: discord.Member):
+    """Fires when a member's roles change in Discord — pushes update to Naja Admin."""
+    if before.roles == after.roles:
+        return
+
+    role_discord_ids = [str(role.id) for role in after.roles if role.name != "@everyone"]
+    all_guild_role_ids = [str(role.id) for role in after.guild.roles if role.name != "@everyone" and not role.managed]
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{config.NAJA_ADMIN_URL}/api/bot/sync-roles",
+                json={
+                    "discord_id": str(after.id),
+                    "role_discord_ids": role_discord_ids,
+                    "all_guild_role_ids": all_guild_role_ids,
+                },
+                headers={"X-API-Key": config.BOT_API_KEY},
+                timeout=10.0,
+            )
+            if response.status_code == 200:
+                print(f"✅ Synced roles for {after.name} ({after.id})")
+            else:
+                print(f"⚠️  Failed to sync roles for {after.name}: HTTP {response.status_code}")
+    except Exception as e:
+        print(f"❌ Error syncing roles for {after.name}: {e}")
 
 
 def main():
