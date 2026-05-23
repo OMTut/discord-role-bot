@@ -73,6 +73,32 @@ async def get_roles(x_api_key: str = Header(...)):
     return roles
 
 
+@app.get("/api/members/{discord_user_id}/roles", tags=["Members"])
+async def get_member_roles(discord_user_id: str, x_api_key: str = Header(...)):
+    """Get a member's current Discord role IDs in the guild."""
+    _check_api_key(x_api_key)
+    _validate_discord_id(discord_user_id)
+
+    if not bot_instance:
+        raise HTTPException(status_code=503, detail="Bot not initialized")
+
+    from config import config
+    from utils.roles import get_member_role_ids
+
+    guild = bot_instance.get_guild(config.guild_id)
+    if not guild:
+        raise HTTPException(status_code=404, detail="Guild not found")
+
+    future = asyncio.run_coroutine_threadsafe(
+        get_member_role_ids(guild, discord_user_id),
+        bot_instance.loop,
+    )
+    role_ids = await asyncio.wrap_future(future)
+    if role_ids is None:
+        raise HTTPException(status_code=404, detail="Member not found in guild")
+    return {"role_discord_ids": role_ids}
+
+
 class SetRolesRequest(BaseModel):
     assigned_role_discord_ids: List[str]
     managed_role_discord_ids: List[str]

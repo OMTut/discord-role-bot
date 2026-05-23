@@ -26,6 +26,19 @@ def get_guild_roles(guild: discord.Guild) -> List[Dict[str, any]]:
 # Params: guild, discord_user_id (str), assigned_role_discord_ids, managed_role_discord_ids
 # Only touches roles that Naja Admin manages; leaves all other Discord roles intact.
 ###########################################
+async def get_member_role_ids(guild: discord.Guild, discord_user_id: str) -> List[str] | None:
+    """Return the member's current role IDs (excluding @everyone). None if member not found."""
+    try:
+        member = guild.get_member(int(discord_user_id))
+        if not member:
+            member = await guild.fetch_member(int(discord_user_id))
+        if not member:
+            return None
+        return [str(role.id) for role in member.roles if role.id != guild.id]
+    except Exception:
+        return None
+
+
 async def set_member_roles(
     guild: discord.Guild,
     discord_user_id: str,
