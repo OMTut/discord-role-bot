@@ -114,7 +114,7 @@ def main():
         # Start the FastAPI server in a background thread
         api_thread = Thread(target=run_api, daemon=True)
         api_thread.start()
-        print('FastAPI server started on http://0.0.0.0:8001')
+        print(f'FastAPI server started on http://{config.API_HOST}:{config.API_PORT}')
         print('=' * 50)
         
         # Start the bot

@@ -18,7 +18,7 @@ app = FastAPI(
 )
 
 # CORS is restricted to Naja Admin only — this API is internal
-allowed_origins = os.getenv("NAJA_ADMIN_URL", "http://localhost:8000").split(",")
+allowed_origins = os.getenv("NAJA_ADMIN_URL").split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in allowed_origins],
@@ -142,6 +142,7 @@ async def set_member_roles(
     }
 
 
-def run_api(host: str = "0.0.0.0", port: int = 8001):
+def run_api():
     """Start the FastAPI server"""
-    uvicorn.run(app, host=host, port=port, log_level="info")
+    from config import config
+    uvicorn.run(app, host=config.API_HOST, port=config.API_PORT, log_level="info")

@@ -23,8 +23,12 @@ class Config:
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 
     # Naja Admin integration
-    NAJA_ADMIN_URL = os.getenv('NAJA_ADMIN_URL', 'http://localhost:8000')
+    NAJA_ADMIN_URL = os.getenv('NAJA_ADMIN_URL')
     BOT_API_KEY = os.getenv('BOT_API_KEY')
+
+    # API server
+    API_HOST = os.getenv('API_HOST')
+    API_PORT = int(os.getenv('API_PORT'))
     
     @property
     def guild_id(self):
