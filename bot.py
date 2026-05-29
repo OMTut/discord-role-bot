@@ -1,10 +1,39 @@
 import discord
 import httpx
+import logging
+import logging.handlers
+import os
 from discord.ext import commands
 from config import config
 from utils.roles import get_guild_roles
 from threading import Thread
 from api import app, run_api
+
+
+def setup_logging():
+    os.makedirs("logs", exist_ok=True)
+    level = getattr(logging, config.LOG_LEVEL.upper(), logging.INFO)
+
+    formatter = logging.Formatter(
+        fmt="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(formatter)
+
+    file_handler = logging.handlers.RotatingFileHandler(
+        filename="logs/gibbs.log",
+        maxBytes=5 * 1024 * 1024,  # 5 MB
+        backupCount=5,
+        encoding="utf-8",
+    )
+    file_handler.setFormatter(formatter)
+
+    logging.basicConfig(level=level, handlers=[stream_handler, file_handler])
+
+
+logger = logging.getLogger("gibbs")
 
 #########################################
 # Create Bot Instance
@@ -38,38 +67,32 @@ async def on_ready():
     import api
     api.bot_instance = bot
     
-    print(f'Logged in as {bot.user.name} (ID: {bot.user.id})')
-    print(f'Environment: {config.ENVIRONMENT}')
-    print('=' * 50)
-    
+    logger.info(f'Logged in as {bot.user.name} (ID: {bot.user.id})')
+    logger.info(f'Environment: {config.ENVIRONMENT}')
+
     # Get the configured guild
     guild = bot.get_guild(config.guild_id)
     if not guild:
-        print(f'Error: Could not find guild with ID: {config.guild_id}')
+        logger.error(f'Could not find guild with ID: {config.guild_id}')
         return
-    
+
     try:
         # Fetch roles using utility function
         roles = get_guild_roles(guild)
-        
-        print(f'✅ Connected to guild: {guild.name} (ID: {guild.id})')
-        print(f'✅ Guild members: {guild.member_count}')
-        print(f'✅ Found {len(roles)} available roles:')
-        print('-' * 30)
-        
-        # Display roles
+
+        logger.info(f'Connected to guild: {guild.name} (ID: {guild.id})')
+        logger.info(f'Guild members: {guild.member_count}')
         if roles:
-            for role in roles:
-                print(f'  • {role["name"]} (ID: {role["id"]})')
+            role_list = ", ".join(f'{r["name"]} ({r["id"]})' for r in roles)
+            logger.info(f'Found {len(roles)} available roles: {role_list}')
         else:
-            print('  No roles found (only managed roles or @everyone exist)')
-            
-        print('-' * 30)
-        print(f'🚀 {bot.user.name} is ready and running!')
-        
+            logger.info('No roles found (only managed roles or @everyone exist)')
+
+        logger.info(f'{bot.user.name} is ready and running!')
+
     except Exception as e:
-        print(f'Error fetching guild information: {e}')
-        print('Check your bot permissions and guild configuration')
+        logger.error(f'Error fetching guild information: {e}')
+        logger.error('Check your bot permissions and guild configuration')
 
 
 @bot.event
@@ -94,38 +117,37 @@ async def on_member_update(before: discord.Member, after: discord.Member):
                 timeout=10.0,
             )
             if response.status_code == 200:
-                print(f"✅ Synced roles for {after.name} ({after.id})")
+                logger.info(f"Synced roles for {after.name} ({after.id})")
             else:
-                print(f"⚠️  Failed to sync roles for {after.name}: HTTP {response.status_code}")
+                logger.warning(f"Failed to sync roles for {after.name}: HTTP {response.status_code}")
     except Exception as e:
-        print(f"❌ Error syncing roles for {after.name}: {e}")
+        logger.error(f"Error syncing roles for {after.name}: {e}")
 
 
 def main():
     try:
+        setup_logging()
         # Validate configuration before starting
         config.validate()
         
-        print('Starting Discord Role Bot...')
-        print(f'Environment: {config.ENVIRONMENT}')
-        print(f'Target Guild ID: {config.guild_id}')
-        print('=' * 50)
-        
+        logger.info('Starting Discord Role Bot...')
+        logger.info(f'Environment: {config.ENVIRONMENT}')
+        logger.info(f'Target Guild ID: {config.guild_id}')
+
         # Start the FastAPI server in a background thread
         api_thread = Thread(target=run_api, daemon=True)
         api_thread.start()
-        print(f'FastAPI server started on http://{config.API_HOST}:{config.API_PORT}')
-        print('=' * 50)
-        
+        logger.info(f'FastAPI server started on http://{config.API_HOST}:{config.API_PORT}')
+
         # Start the bot
         bot.run(config.DISCORD_TOKEN)
-        
+
     except ValueError as e:
-        print(f'Configuration error: {e}')
-        print('Please check your .env file and ensure all required values are set')
+        logger.error(f'Configuration error: {e}')
+        logger.error('Please check your .env file and ensure all required values are set')
         return 1
     except Exception as e:
-        print(f'Unexpected error: {e}')
+        logger.error(f'Unexpected error: {e}')
         return 1
 
 

@@ -54,5 +54,14 @@ class Config:
         if not self.BOT_API_KEY:
             raise ValueError("BOT_API_KEY is required")
 
+        if not self.NAJA_ADMIN_URL:
+            raise ValueError("NAJA_ADMIN_URL is required")
+
+        if not self.is_development and not self.NAJA_ADMIN_URL.startswith("https://"):
+            raise ValueError("NAJA_ADMIN_URL must use HTTPS in production")
+
+        if not self.is_development and self.API_HOST == "0.0.0.0":
+            raise ValueError("API_HOST must not be 0.0.0.0 in production")
+
 # Global config instance
 config = Config()

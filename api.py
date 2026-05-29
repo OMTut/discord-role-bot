@@ -6,22 +6,33 @@ import asyncio
 import hmac
 import os
 import uvicorn
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, HTTPException, Header, Request
+from pydantic import Field
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(
     title="Discord Role Bot API",
     description="REST API for accessing Discord roles",
     version="1.0.0"
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS is restricted to Naja Admin only — this API is internal
-allowed_origins = os.getenv("NAJA_ADMIN_URL").split(",")
+_naja_url = os.getenv("NAJA_ADMIN_URL")
+if not _naja_url:
+    raise ValueError("NAJA_ADMIN_URL environment variable is required")
+allowed_origins = [o.strip() for o in _naja_url.split(",")]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in allowed_origins],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "PUT"],
     allow_headers=["X-API-Key", "Content-Type"],
@@ -40,11 +51,15 @@ def _check_api_key(x_api_key: str):
 def _validate_discord_id(discord_id: str) -> int:
     if not discord_id.isdigit():
         raise HTTPException(status_code=422, detail="Invalid Discord user ID format")
-    return int(discord_id)
+    user_id = int(discord_id)
+    if user_id < 1 or user_id > 2**63 - 1:
+        raise HTTPException(status_code=422, detail="Invalid Discord user ID range")
+    return user_id
 
 
 @app.get("/health", tags=["Health"])
-async def health_check(x_api_key: str = Header(...)):
+@limiter.limit("60/minute")
+async def health_check(request: Request, x_api_key: str = Header(...)):
     """Health check endpoint"""
     _check_api_key(x_api_key)
     if not bot_instance:
@@ -55,7 +70,8 @@ async def health_check(x_api_key: str = Header(...)):
 
 
 @app.get("/api/roles", response_model=List[Dict[str, Any]], tags=["Roles"])
-async def get_roles(x_api_key: str = Header(...)):
+@limiter.limit("60/minute")
+async def get_roles(request: Request, x_api_key: str = Header(...)):
     """Get all available roles from the configured guild"""
     _check_api_key(x_api_key)
 
@@ -74,7 +90,8 @@ async def get_roles(x_api_key: str = Header(...)):
 
 
 @app.get("/api/members/{discord_user_id}/roles", tags=["Members"])
-async def get_member_roles(discord_user_id: str, x_api_key: str = Header(...)):
+@limiter.limit("60/minute")
+async def get_member_roles(request: Request, discord_user_id: str, x_api_key: str = Header(...)):
     """Get a member's current Discord role IDs in the guild."""
     _check_api_key(x_api_key)
     _validate_discord_id(discord_user_id)
@@ -100,12 +117,14 @@ async def get_member_roles(discord_user_id: str, x_api_key: str = Header(...)):
 
 
 class SetRolesRequest(BaseModel):
-    assigned_role_discord_ids: List[str]
-    managed_role_discord_ids: List[str]
+    assigned_role_discord_ids: List[str] = Field(..., max_length=50)
+    managed_role_discord_ids: List[str] = Field(..., max_length=50)
 
 
 @app.put("/api/members/{discord_user_id}/roles", tags=["Members"])
+@limiter.limit("30/minute")
 async def set_member_roles(
+    request: Request,
     discord_user_id: str,
     body: SetRolesRequest,
     x_api_key: str = Header(...),

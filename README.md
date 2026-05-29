@@ -83,26 +83,11 @@ The bot will:
 
 The bot exposes a FastAPI server on port `8001` with the following endpoints:
 
-### Health Check
-```
-GET /health
-```
-Returns the bot's connection status.
+- /health - get connection status
+- /api/roles - get all available roles from the org
+- /api/members/{discord-user-id}/roles - get roles of a user
+- /api/members/{discord-user-id}/roles - put (set) user's role
 
-### Get Roles
-```
-GET /api/roles
-```
-Returns a list of all available roles from the configured guild.
-
-**Example response:**
-```json
-[
-  {"name": "Admin", "id": 123456789},
-  {"name": "Moderator", "id": 987654321},
-  {"name": "Member", "id": 555555555}
-]
-```
 
 ## Dependencies
 
@@ -115,11 +100,6 @@ Returns a list of all available roles from the configured guild.
 ## Security
 
 Sensitive information (Discord token, API keys, guild IDs) is managed through environment variables in a `.env` file. This file should **never** be committed to version control.
-
-When deploying or sharing the code:
-- Always use environment variables for secrets
-- Include a `.env.example` file showing required variables (without actual values)
-- Ensure `.gitignore` excludes `.env` files
 
 ## Future Enhancements
 

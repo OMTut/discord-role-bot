@@ -2,7 +2,10 @@
 Role management utilities for Discord Role Bot
 """
 import discord
+import logging
 from typing import List, Dict, Set
+
+audit_log = logging.getLogger("gibbs.audit")
 
 ###########################################
 # Get Guild Roles
@@ -17,7 +20,7 @@ def get_guild_roles(guild: discord.Guild) -> List[Dict[str, any]]:
                 roles.append({'name': role.name, 'id': role.id})
         return roles
     except Exception as e:
-        print(f"Error fetching roles: {e}")
+        audit_log.error(f"Error fetching roles: {e}")
         return []
 
 
@@ -59,6 +62,11 @@ async def set_member_roles(
 
         managed: Set[str] = set(managed_role_discord_ids)
         assigned: Set[str] = set(assigned_role_discord_ids)
+
+        if not assigned.issubset(managed):
+            invalid = assigned - managed
+            return [], [], [f"Assigned roles not in managed set: {invalid}"]
+
         guild_roles_by_id = {str(role.id): role for role in guild.roles}
         current_managed = {str(r.id) for r in member.roles if str(r.id) in managed}
 
@@ -92,6 +100,21 @@ async def set_member_roles(
                 not_in_discord.add(role_id)
 
         final = (current_managed - successful_removes) | successful_adds
+
+        if successful_adds or successful_removes:
+            audit_log.info(
+                "Role update: user=%s added=[%s] removed=[%s]",
+                discord_user_id,
+                ", ".join(successful_adds),
+                ", ".join(successful_removes),
+            )
+        else:
+            audit_log.info("Role update: user=%s no_changes", discord_user_id)
+
+        if errors:
+            audit_log.warning("Role update errors: user=%s errors=%s", discord_user_id, errors)
+
         return list(final), list(not_in_discord), errors
     except Exception as e:
+        audit_log.error("Role update failed: user=%s error=%s", discord_user_id, str(e))
         return [], [], [str(e)]
