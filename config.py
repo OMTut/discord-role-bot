@@ -22,8 +22,8 @@ class Config:
     COMMAND_PREFIX = os.getenv('COMMAND_PREFIX', '!')
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 
-    # Naja Admin integration
-    NAJA_ADMIN_URL = os.getenv('NAJA_ADMIN_URL')
+    # ORG Admin integration
+    ORG_ADMIN_URL = os.getenv('ORG_ADMIN_URL')
     BOT_API_KEY = os.getenv('BOT_API_KEY')
 
     # API server
@@ -54,11 +54,11 @@ class Config:
         if not self.BOT_API_KEY:
             raise ValueError("BOT_API_KEY is required")
 
-        if not self.NAJA_ADMIN_URL:
-            raise ValueError("NAJA_ADMIN_URL is required")
+        if not self.ORG_ADMIN_URL:
+            raise ValueError("ORG_ADMIN_URL is required")
 
-        if not self.is_development and not self.NAJA_ADMIN_URL.startswith("https://"):
-            raise ValueError("NAJA_ADMIN_URL must use HTTPS in production")
+        if not self.is_development and not self.ORG_ADMIN_URL.startswith("https://"):
+            raise ValueError("ORG_ADMIN_URL must use HTTPS in production")
 
         if not self.is_development and self.API_HOST == "0.0.0.0":
             raise ValueError("API_HOST must not be 0.0.0.0 in production")

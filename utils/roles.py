@@ -27,7 +27,7 @@ def get_guild_roles(guild: discord.Guild) -> List[Dict[str, any]]:
 ###########################################
 # Set Member Roles
 # Params: guild, discord_user_id (str), assigned_role_discord_ids, managed_role_discord_ids
-# Only touches roles that Naja Admin manages; leaves all other Discord roles intact.
+# Only touches roles that ORG Admin manages; leaves all other Discord roles intact.
 ###########################################
 async def get_member_role_ids(guild: discord.Guild, discord_user_id: str) -> List[str] | None:
     """Return the member's current role IDs (excluding @everyone). None if member not found."""
@@ -96,7 +96,7 @@ async def set_member_roles(
                 except Exception as e:
                     errors.append(f"'{role.name}': {e}")
             else:
-                # Role not found in guild — app-only, Naja Admin should save it directly
+                # Role not found in guild — app-only, ORG Admin should save it directly
                 not_in_discord.add(role_id)
 
         final = (current_managed - successful_removes) | successful_adds

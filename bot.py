@@ -97,7 +97,7 @@ async def on_ready():
 
 @bot.event
 async def on_member_update(before: discord.Member, after: discord.Member):
-    """Fires when a member's roles change in Discord — pushes update to Naja Admin."""
+    """Fires when a member's roles change in Discord — pushes update to ORG Admin."""
     if before.roles == after.roles:
         return
 
@@ -107,7 +107,7 @@ async def on_member_update(before: discord.Member, after: discord.Member):
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                f"{config.NAJA_ADMIN_URL}/api/bot/sync-roles",
+                f"{config.ORG_ADMIN_URL}/api/bot/sync-roles",
                 json={
                     "discord_id": str(after.id),
                     "role_discord_ids": role_discord_ids,

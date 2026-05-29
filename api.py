@@ -25,11 +25,11 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# CORS is restricted to Naja Admin only — this API is internal
-_naja_url = os.getenv("NAJA_ADMIN_URL")
-if not _naja_url:
-    raise ValueError("NAJA_ADMIN_URL environment variable is required")
-allowed_origins = [o.strip() for o in _naja_url.split(",")]
+# CORS is restricted to ORG Admin only — this API is internal
+_ORG_url = os.getenv("ORG_ADMIN_URL")
+if not _ORG_url:
+    raise ValueError("ORG_ADMIN_URL environment variable is required")
+allowed_origins = [o.strip() for o in _ORG_url.split(",")]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
@@ -129,7 +129,7 @@ async def set_member_roles(
     body: SetRolesRequest,
     x_api_key: str = Header(...),
 ):
-    """Set a member's Discord roles. Only touches roles managed by Naja Admin."""
+    """Set a member's Discord roles. Only touches roles managed by ORG Admin."""
     _check_api_key(x_api_key)
     _validate_discord_id(discord_user_id)
 
